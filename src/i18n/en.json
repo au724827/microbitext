@@ -140,6 +140,7 @@
 		"AutoEncryption": "Auto Encryption",
 		"Hacker": "Hacker",
 		"Beep": "Beep",
+		"BitByBitInput": "Bit-by-bit input",
 		"descriptions": {
 			"Server": "Displays a log of all messages sent between micro:bits",
 			"Translator": "Makes it easier to understand the messages in the logs",
@@ -150,7 +151,8 @@
 			"Encryption": "Allows students to encrypt their messages, so they can only be read by the correct recipient",
 			"AutoEncryption": "Automatically encrypts messages",
 			"Hacker": "Allows students to modify messages through the server before they are sent to the recipient",
-			"Beep": "Controls whether the micro:bit should play a sound when it receives a message"
+			"Beep": "Controls whether the micro:bit should play a sound when it receives a message",
+			"BitByBitInput": "Allows students to build a message image bit by bit directly on the micro:bit using the A and B buttons"
 		},
 		"passwords": {
 			"Server": "server",
@@ -163,6 +165,7 @@
 			"AutoEncryption": "auto-encrypt",
 			"Hacker": "hack",
 			"Beep": "beep",
+			"BitByBitInput": "bit-by-bit",
 			"all": "very secret code",
 			"bundle1": "bundle1"
 		}
@@ -224,6 +227,13 @@
 		"duplicate": {
 			"title": "Download to micro:bit again?",
 			"description": "This micro:bit has already been programmed. Do you want to download the program to the micro:bit again? This will overwrite the existing program."
+		},
+		"errors": {
+			"title": "Something went wrong",
+			"tryAgain": "Try again",
+			"disconnected": "The micro:bit was disconnected during programming. Keep it connected to the computer and try again.",
+			"storageSpace": "The client program is too large to fit on the micro:bit. Try using a smaller program or contact the project maintainers.",
+			"unknownError": "An unknown error occurred while programming the micro:bit. Try again, or use a different USB cable or port."
 		},
 		"noWebUSBSupport": {
 			"title": "Unsupported browser",

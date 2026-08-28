@@ -140,6 +140,7 @@
 		"AutoEncryption": "Auto Kryptering",
 		"Hacker": "Hacker",
 		"Beep": "Beep",
+		"BitByBitInput": "Bit-for-bit input",
 		"descriptions": {
 			"Server": "Viser en log over alle beskeder, der sendes mellem micro:bits",
 			"Translator": "Går det nemmere at forstå beskederne i logger",
@@ -150,7 +151,8 @@
 			"Encryption": "Lader eleverne kryptere deres beskeder, så de kun kan læses af den rigtige modtager",
 			"AutoEncryption": "Krypterer automatisk beskederne",
 			"Hacker": "Lader eleverne ændre i beskederne ved hjælp af serveren inden de sendes videre til modtageren",
-			"Beep": "Styrer om micro:bit'en skal afspille en lyd, når den modtager en besked"
+			"Beep": "Styrer om micro:bit'en skal afspille en lyd, når den modtager en besked",
+			"BitByBitInput": "Lader eleverne bygge et beskedbillede bit for bit direkte på micro:bit'en med A- og B-knapperne"
 		},
 		"passwords": {
 			"Server": "server",
@@ -163,6 +165,7 @@
 			"AutoEncryption": "auto-krypter",
 			"Hacker": "hack",
 			"Beep": "beep",
+			"BitByBitInput": "bit-for-bit",
 			"all": "meget hemmelig kode",
 			"bundle1": "pakke1"
 		}
@@ -228,7 +231,9 @@
 		"errors": {
 			"title": "Der er sket en fejl",
 			"tryAgain": "Prøv igen",
-			"disconnected": "Micro:bitten er blevet frakoblet under programmeringen. Sørg for at micro:bitten er tilsluttet computeren, og prøv igen."
+			"disconnected": "Micro:bitten er blevet frakoblet under programmeringen. Sørg for at micro:bitten er tilsluttet computeren, og prøv igen.",
+			"storageSpace": "Klientprogrammet er for stort til at passe på micro:bit'en. Prøv et mindre program, eller kontakt projektets udviklere.",
+			"unknownError": "Der opstod en ukendt fejl under programmering af micro:bit'en. Prøv igen, eller brug et andet USB-kabel eller en anden port."
 		},
 		"noWebUSBSupport": {
 			"title": "Browseren understøttes ikke",

@@ -3,6 +3,7 @@
 	import { flashMicrobitWithConfig } from '../../helpers/flasher.svelte';
 	import MicrobitPlugGraphic from './MicrobitPlugGraphic.svelte';
 	import { DeviceError } from '@microbit/microbit-connection';
+	import { MicrobitCompileError } from '../../helpers/micropython_compiler';
 	import { alert } from '../../helpers/popup';
 
 	const scopedT = scope('flasher');
@@ -40,13 +41,16 @@
 			} else {
 				step = 'remove';
 			}
-		} catch (error) {
-			if (error instanceof DeviceError && error.code === 'no-device-selected') {
+		} catch (err) {
+			if (err instanceof DeviceError && err.code === 'no-device-selected') {
 				step = 'plug-in';
 				alert(scopedT('noDevicesSelected'), scopedT('noDevicesSelectedDescription'));
 			} else {
 				step = 'error';
-				throw error;
+				error =
+					err instanceof MicrobitCompileError && err.code === 'storage-space-exceeded'
+						? 'storageSpace'
+						: 'unknownError';
 			}
 		}
 	}

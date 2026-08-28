@@ -6,6 +6,13 @@ const masterRoleSource = () => import('../micropython/communicationMB.py?raw');
 
 const commonFsSize = 20 * 1024;
 
+export class MicrobitCompileError extends Error {
+	constructor(public readonly code: 'storage-space-exceeded') {
+		super(code);
+		this.name = 'MicrobitCompileError';
+	}
+}
+
 const compilationCache: Record<string, Promise<MicropythonFsHex>> = {};
 export async function compileMicropythonWithConfig(
 	source: 'dummy' | 'master',
@@ -25,6 +32,10 @@ async function compileMicropython(sourceCode: string) {
 	const micropythonBase = await fetchMicroPython();
 	const fs = new MicropythonFsHex(micropythonBase, { maxFsSize: commonFsSize });
 	fs.write('main.py', sourceCode);
+
+	if (fs.getStorageRemaining() < 0) {
+		throw new MicrobitCompileError('storage-space-exceeded');
+	}
 
 	return fs;
 }

@@ -24,6 +24,7 @@ encryptable = False
 auto_encryptable = False
 allow_recipient = False
 should_beep = False
+bit_by_bit_input = False
 encryption_code = ""
 receive_from_known = []
 packed_image = ""
@@ -160,6 +161,7 @@ while True:
                 auto_encryptable = uartmessage.split("_")[4] == "1"
                 allow_recipient = uartmessage.split("_")[5] == "1"
                 should_beep = uartmessage.split("_")[6] == "1"
+                bit_by_bit_input = uartmessage.split("_")[7] == "1"
                 broadcast_settings()
 
             if code == "forgetAll":
@@ -277,7 +279,7 @@ while True:
             should_broadcast_settings
             and (time.ticks_ms() - settings_broadcast_debounce) > 500
         ):
-            # settings_| isEncryptable |_| autoEncrypt |_| allowRecipient |_| shouldBeep |
+            # settings_| encryptable |_| autoEncrypt |_| allowRecipient |_| shouldBeep |_| bitByBitInput |
             send_radio_message(
                 "settings_"
                 + ("1" if encryptable else "0")
@@ -287,6 +289,8 @@ while True:
                 + ("1" if allow_recipient else "0")
                 + "_"
                 + ("1" if should_beep else "0")
+                + "_"
+                + ("1" if bit_by_bit_input else "0")
             )
             settings_broadcast_debounce = 0
             should_broadcast_settings = False

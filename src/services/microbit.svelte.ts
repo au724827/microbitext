@@ -26,7 +26,8 @@ interface MessagesToMicrobit {
 		encryptable: BooleanInt,
 		autoEncryptable: BooleanInt,
 		allowRecipient: BooleanInt,
-		shouldBeep: BooleanInt
+		shouldBeep: BooleanInt,
+		bitByBitInput: BooleanInt
 	];
 	forgetAll: [];
 	start: [];
@@ -255,7 +256,8 @@ class MicrobitService {
 			features.enabledFeatures.has(Features.Encryption) ? 1 : 0,
 			features.enabledFeatures.has(Features.AutoEncryption) ? 1 : 0,
 			features.enabledFeatures.has(Features.Router) ? 1 : 0,
-			features.enabledFeatures.has(Features.Beep) ? 1 : 0
+			features.enabledFeatures.has(Features.Beep) ? 1 : 0,
+			features.enabledFeatures.has(Features.BitByBitInput) ? 1 : 0
 		);
 	}
 

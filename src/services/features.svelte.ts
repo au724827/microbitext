@@ -15,7 +15,8 @@ export enum Features {
 	Encryption = 'Encryption',
 	AutoEncryption = 'AutoEncryption',
 	Hacker = 'Hacker',
-	Beep = 'Beep'
+	Beep = 'Beep',
+	BitByBitInput = 'BitByBitInput'
 }
 
 const passwordT = scope('features.passwords');
@@ -32,7 +33,8 @@ const featuresConfig: FeatureConfig = {
 	},
 	[Features.KodeKnækkeren]: { passwords: [passwordT('KodeKnækkeren')] },
 	[Features.Hacker]: { passwords: [passwordT('Hacker')] },
-	[Features.Beep]: { passwords: [passwordT('Beep')] }
+	[Features.Beep]: { passwords: [passwordT('Beep')] },
+	[Features.BitByBitInput]: { passwords: [passwordT('BitByBitInput')] }
 };
 
 export const featureList = Object.entries(featuresConfig).map(([key, config]) => ({
