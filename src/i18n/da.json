@@ -49,7 +49,8 @@
 	"welcome": {
 		"noConnection": "Ingen enhed forbundet",
 		"connect": "Forbind micro:bit",
-		"programMicrobits": "Programmer micro:bits"
+		"programMicrobits": "Programmer micro:bits",
+		"openClientInterface": "Åbn klientgrænseflade"
 	},
 	"widgets": {
 		"interactiveBitString": {
@@ -137,6 +138,8 @@
 		"Router": "Modtager",
 		"AutoRouter": "Auto Modtager",
 		"Encryption": "Kryptering",
+		"Symmetric": "Symmetrisk",
+		"Asymmetric": "Asymmetrisk",
 		"AutoEncryption": "Auto Kryptering",
 		"Hacker": "Hacker",
 		"Beep": "Beep",
@@ -147,7 +150,9 @@
 			"KodeKnækkeren": "Lader eleverne prøve krafter med at knække koden til et krypteret billede",
 			"Router": "Tillader eleverne at vælge modtager af deres beskeder, samt at styre hvem der modtager beskederne ved hjælp af serveren",
 			"AutoRouter": "Sender automatisk beskederne til den rigtige modtager, uden at eleverne skal vælge modtageren",
-			"Encryption": "Lader eleverne kryptere deres beskeder, så de kun kan læses af den rigtige modtager",
+			"Encryption": "Vælg hvordan eleverne krypterer: en delt hemmelighed, eller offentlige nøgler",
+			"Symmetric": "Krypter med en delt kode, som begge parter kender",
+			"Asymmetric": "Krypter med offentlige og private nøgler i klientgrænsefladen",
 			"AutoEncryption": "Krypterer automatisk beskederne",
 			"Hacker": "Lader eleverne ændre i beskederne ved hjælp af serveren inden de sendes videre til modtageren",
 			"Beep": "Styrer om micro:bit'en skal afspille en lyd, når den modtager en besked"
@@ -160,6 +165,8 @@
 			"Router": "modtager",
 			"AutoRouter": "auto-modtager",
 			"Encryption": "krypter",
+			"Symmetric": "symmetrisk",
+			"Asymmetric": "asymmetrisk",
 			"AutoEncryption": "auto-krypter",
 			"Hacker": "hack",
 			"Beep": "beep",
@@ -175,6 +182,10 @@
 			"title": "Klient micro:bit fundet",
 			"text": "Det ser ud til at du har tilsluttet en klient micro:bit. For at kunne bruge dette program skal du tilslutte en micro:bit, som er programmeret til at være en server."
 		},
+		"serverMicrobitDetected": {
+			"title": "Server micro:bit fundet",
+			"text": "Det ser ud til at du har tilsluttet en server micro:bit. Tilslut en klient micro:bit på denne side."
+		},
 		"unknownConnection": {
 			"title": "Ukendt forbindelse",
 			"text": "Bit:chat kan ikke genkende den micro:bit, som du har tilsluttet. For at kunne bruge dette program skal du tilslutte en micro:bit, som er programmeret til at være en server."
@@ -183,6 +194,39 @@
 			"title": "Forældet micro:bit kode",
 			"text": "Den micro:bit kode, som du har tilsluttet, er forældet. For at kunne bruge dette program skal du opdatere micro:bit koden til den nyeste version ({{version}})."
 		}
+	},
+	"clientInterface": {
+		"title": "Klientgrænseflade",
+		"subtitle": "Tilslut en klient micro:bit for at styre nøgler og klientfunktioner.",
+		"connectDescription": "Sæt en klient micro:bit i og forbind den til denne side.",
+		"connect": "Forbind klient micro:bit",
+		"connected": "Klient micro:bit forbundet",
+		"disconnect": "Afbryd",
+		"keyGen": "Generer nøglepar",
+		"privateKey": "Privat nøgle",
+		"publicKey": "Offentlig nøgle",
+		"keepSecret": "Hold hemmelig",
+		"shareFreely": "Del frit",
+		"bitString": "Bits",
+		"hidePrivateKey": "Skjul privat nøgle",
+		"showPrivateKey": "Vis privat nøgle",
+		"privateKeyHidden": "Privat nøgle skjult",
+		"learnedKeys": "Kendte offentlige nøgler",
+		"learnedKeysHint": "Du kan kun kryptere til en micro:bit, når du har gemt dens offentlige nøgle her.",
+		"noLearnedKeys": "Ingen offentlige nøgler er tilføjet endnu.",
+		"addPublicKey": "Tilføj offentlig nøgle",
+		"otherDeviceName": "Micro:bit-navn",
+		"otherDeviceNamePlaceholder": "fx tugov",
+		"missingName": "Indtast den anden micro:bits navn.",
+		"add": "Tilføj",
+		"removePublicKey": "Fjern",
+		"duplicateName": "Det navn er allerede på din liste.",
+		"emptyPublicKey": "Tegn den offentlige nøgles mønster, før du tilføjer den.",
+		"encrypt": "Kryptér",
+		"decrypt": "Dekryptér",
+		"selectRecipient": "Vælg hvem du vil kryptere til",
+		"needKeys": "Generer dit nøglepar og tilføj en offentlig nøgle, før du kan kryptere eller dekryptere.",
+		"asymmetricRequired": "Asymmetrisk kryptering er ikke slået til. Slå den til under Features, eller spørg din lærer om koden."
 	},
 	"teacher": {
 		"title": "Velkommen lærer",

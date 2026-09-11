@@ -49,7 +49,8 @@
 	"welcome": {
 		"noConnection": "No device connected",
 		"connect": "Connect micro:bit",
-		"programMicrobits": "Program micro:bits"
+		"programMicrobits": "Program micro:bits",
+		"openClientInterface": "Open client interface"
 	},
 	"widgets": {
 		"interactiveBitString": {
@@ -137,6 +138,8 @@
 		"Router": "Router",
 		"AutoRouter": "Auto Router",
 		"Encryption": "Encryption",
+		"Symmetric": "Symmetric",
+		"Asymmetric": "Asymmetric",
 		"AutoEncryption": "Auto Encryption",
 		"Hacker": "Hacker",
 		"Beep": "Beep",
@@ -147,7 +150,9 @@
 			"KodeKnækkeren": "Allows students to try their hand at cracking the code of an encrypted image",
 			"Router": "Allows students to choose the recipient of their messages, as well as control who receives messages through the server",
 			"AutoRouter": "Automatically sends messages to the correct recipient, without students needing to choose the recipient",
-			"Encryption": "Allows students to encrypt their messages, so they can only be read by the correct recipient",
+			"Encryption": "Choose how students encrypt: a shared secret, or public keys",
+			"Symmetric": "Encrypt with a shared code that both sides know",
+			"Asymmetric": "Encrypt using public and private keys on the client interface",
 			"AutoEncryption": "Automatically encrypts messages",
 			"Hacker": "Allows students to modify messages through the server before they are sent to the recipient",
 			"Beep": "Controls whether the micro:bit should play a sound when it receives a message"
@@ -160,6 +165,8 @@
 			"Router": "router",
 			"AutoRouter": "auto-router",
 			"Encryption": "encrypt",
+			"Symmetric": "symmetric",
+			"Asymmetric": "asymmetric",
 			"AutoEncryption": "auto-encrypt",
 			"Hacker": "hack",
 			"Beep": "beep",
@@ -175,6 +182,10 @@
 			"title": "Client microbit detected",
 			"text": "It appears that you are using a client micro:bit. Please make sure you using the micro:bit that is programmed with the server code."
 		},
+		"serverMicrobitDetected": {
+			"title": "Server microbit detected",
+			"text": "It appears that you are using a server micro:bit. Please connect a client micro:bit on this page."
+		},
 		"unknownConnection": {
 			"title": "Unknown microbit",
 			"text": "Are you sure this micro:bit is running the correct code?"
@@ -183,6 +194,39 @@
 			"title": "Outdated micro:bit code",
 			"text": "The micro:bit code is outdated. Please update the micro:bit code to newest version ({{version}})."
 		}
+	},
+	"clientInterface": {
+		"title": "Client interface",
+		"subtitle": "Connect a client micro:bit to manage keys and client-side features.",
+		"connectDescription": "Plug in a client micro:bit and connect it to this page.",
+		"connect": "Connect client micro:bit",
+		"connected": "Client micro:bit connected",
+		"disconnect": "Disconnect",
+		"keyGen": "Generate key pair",
+		"privateKey": "Private key",
+		"publicKey": "Public key",
+		"keepSecret": "Keep secret",
+		"shareFreely": "Share freely",
+		"bitString": "Bits",
+		"hidePrivateKey": "Hide private key",
+		"showPrivateKey": "Show private key",
+		"privateKeyHidden": "Private key hidden",
+		"learnedKeys": "Learned public keys",
+		"learnedKeysHint": "You can only encrypt to a micro:bit after you have saved its public key here.",
+		"noLearnedKeys": "No public keys added yet.",
+		"addPublicKey": "Add public key",
+		"otherDeviceName": "Micro:bit name",
+		"otherDeviceNamePlaceholder": "e.g. tugov",
+		"missingName": "Enter the other micro:bit's name.",
+		"add": "Add",
+		"removePublicKey": "Remove",
+		"duplicateName": "That name is already on your list.",
+		"emptyPublicKey": "Draw the public key pattern before adding it.",
+		"encrypt": "Encrypt",
+		"decrypt": "Decrypt",
+		"selectRecipient": "Choose who to encrypt to",
+		"needKeys": "Generate your key pair and add a public key before you can encrypt or decrypt.",
+		"asymmetricRequired": "Asymmetric encryption is not enabled. Enable it under Features, or ask your teacher for the feature code."
 	},
 	"teacher": {
 		"title": "Welcome teacher",

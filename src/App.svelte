@@ -21,6 +21,9 @@
 				return 'flash';
 			case '/classroom-flasher':
 				return 'classroomFlasher';
+			case '/client':
+			case '/klient':
+				return 'client';
 			default:
 				return 'chat';
 		}
@@ -43,6 +46,10 @@
 	{:else if page === 'classroomFlasher'}
 		{#await import('./lib/Pages/ClassroomFlasher.svelte') then { default: ClassroomFlasher }}
 			<ClassroomFlasher />
+		{/await}
+	{:else if page === 'client'}
+		{#await import('./lib/Pages/ClientInterface.svelte') then { default: ClientInterface }}
+			<ClientInterface />
 		{/await}
 	{:else if page === 'unsupportedBrowser'}
 		<UnsupportedBrowser />

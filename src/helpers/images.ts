@@ -52,6 +52,19 @@ export function unpackImage(payload: string): ImageMatrix {
 	}) as ImageMatrix;
 }
 
+/** Pack a 25-bit integer into a 5×5 LED matrix (row-major, MSB first). */
+export function intToImageMatrix(value: number): ImageMatrix {
+	const bits = value.toString(2).padStart(25, '0').slice(-25);
+	return [0, 1, 2, 3, 4].map((row) =>
+		[0, 1, 2, 3, 4].map((col) => Number(bits[row * 5 + col]))
+	) as ImageMatrix;
+}
+
+/** Read a 5×5 LED matrix as a 25-bit integer (row-major, MSB first). */
+export function imageMatrixToInt(matrix: ImageMatrix): number {
+	return parseInt(matrix.flat().join(''), 2);
+}
+
 export function createImageWithCaption(
 	matrix: ImageMatrix,
 	caption: string

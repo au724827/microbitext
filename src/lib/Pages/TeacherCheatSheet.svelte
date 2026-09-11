@@ -6,7 +6,8 @@
 		features,
 		Features,
 		getAllChildren,
-		getAllParents
+		getAllParents,
+		getExclusiveSiblings
 	} from '../../services/features.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { copyToClipboard } from '../../helpers/clipboard';
@@ -29,6 +30,10 @@
 		} else {
 			selectedFeatures.add(feature);
 			getAllParents(feature).forEach((parent) => selectedFeatures.add(parent));
+			getExclusiveSiblings(feature).forEach((sibling) => {
+				selectedFeatures.delete(sibling);
+				getAllChildren(sibling).forEach((child) => selectedFeatures.delete(child));
+			});	
 		}
 	};
 </script>

@@ -26,7 +26,8 @@ interface MessagesToMicrobit {
 		encryptable: BooleanInt,
 		autoEncryptable: BooleanInt,
 		allowRecipient: BooleanInt,
-		shouldBeep: BooleanInt
+		shouldBeep: BooleanInt,
+		asymmetric: BooleanInt
 	];
 	forgetAll: [];
 	start: [];
@@ -248,14 +249,25 @@ class MicrobitService {
 	async removeImageFromMB(image: ImageMatrix) {
 		await this.writeToMB('removeImg', packImage(image));
 	}
+	private settingsBroadcastTimer: ReturnType<typeof setTimeout> | undefined;
 
-	private async broadcastSettings() {
+	private broadcastSettings() {
+		if (this.settingsBroadcastTimer) {
+			clearTimeout(this.settingsBroadcastTimer);
+		}
+		this.settingsBroadcastTimer = setTimeout(() => {
+			void this.sendSettings();
+		}, 400);
+	}
+
+	private async sendSettings() {
 		await this.writeToMB(
 			'settings',
-			features.enabledFeatures.has(Features.Encryption) ? 1 : 0,
-			features.enabledFeatures.has(Features.AutoEncryption) ? 1 : 0,
+			features.isActive(Features.Symmetric) ? 1 : 0,
+			features.isActive(Features.AutoEncryption) ? 1 : 0,
 			features.enabledFeatures.has(Features.Router) ? 1 : 0,
-			features.enabledFeatures.has(Features.Beep) ? 1 : 0
+			features.enabledFeatures.has(Features.Beep) ? 1 : 0,
+			features.isActive(Features.Asymmetric) ? 1 : 0
 		);
 	}
 

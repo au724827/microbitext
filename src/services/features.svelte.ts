@@ -15,7 +15,9 @@ export enum Features {
 	Encryption = 'Encryption',
 	AutoEncryption = 'AutoEncryption',
 	Hacker = 'Hacker',
-	Beep = 'Beep'
+	Beep = 'Beep',
+	Symmetric = 'Symmetric',
+	Asymmetric = 'Asymmetric'
 }
 
 const passwordT = scope('features.passwords');
@@ -26,9 +28,17 @@ const featuresConfig: FeatureConfig = {
 	[Features.ImageBuilder]: { passwords: [passwordT('ImageBuilder')] },
 	[Features.Translator]: { passwords: [passwordT('Translator')] },
 	[Features.Encryption]: { passwords: [passwordT('Encryption')] },
-	[Features.AutoEncryption]: {
+	[Features.Symmetric]: {
 		parent: Features.Encryption,
+		passwords: [passwordT('Symmetric')]
+	},
+	[Features.AutoEncryption]: {
+		parent: Features.Symmetric,
 		passwords: [passwordT('AutoEncryption')]
+	},
+	[Features.Asymmetric]: {
+		parent: Features.Encryption,
+		passwords: [passwordT('Asymmetric')]
 	},
 	[Features.KodeKnækkeren]: { passwords: [passwordT('KodeKnækkeren')] },
 	[Features.Hacker]: { passwords: [passwordT('Hacker')] },
@@ -74,6 +84,15 @@ export function getAllChildren(feature: Features): Features[] {
 
 	return [...children, ...children.flatMap(getAllChildren)];
 }
+
+/** Sibling features that cannot be enabled at the same time. */
+const exclusiveFeatureGroups: Features[][] = [[Features.Symmetric, Features.Asymmetric]];
+
+export function getExclusiveSiblings(feature: Features): Features[] {
+	const group = exclusiveFeatureGroups.find((members) => members.includes(feature));
+	return group ? group.filter((member) => member !== feature) : [];
+}
+
 
 type Events = EventMap & {
 	enable: (feature: Features) => void;
@@ -134,6 +153,7 @@ class FeaturesService extends EventEmitter<Events> {
 
 		this.loadFromURLParams(); // Load features from URL parameters after loading from localStorage
 		this.setDefaultFeatures(); // Ensure default features are set if none are available
+		this.ensureEncryptionMode();
 	}
 
 	/**
@@ -156,6 +176,17 @@ class FeaturesService extends EventEmitter<Events> {
 		}
 	}
 
+	/** Old Encryption-only codes keep working as symmetric XOR. */
+	private ensureEncryptionMode() {
+		if (
+			this.has(Features.Encryption) &&
+			!this.has(Features.Symmetric) &&
+			!this.has(Features.Asymmetric)
+		) {
+			this.addAvailableFeature(Features.Symmetric);
+		}
+	}
+
 	/**
 	 * Generates a shareable URL that includes the specified features.
 	 * @param featuresToShare Optional array of features to include in the URL. If not provided, all currently enabled features will be included.
@@ -175,7 +206,23 @@ class FeaturesService extends EventEmitter<Events> {
 	 * @param feature Feature to enable
 	 */
 	public enable(feature: Features): void {
-		this.enabledFeatures.add(feature);
+
+		if (feature === Features.Encryption) {
+			feature = Features.Symmetric;
+		}
+	
+		const toEnable = [feature, ...getAllParents(feature)];
+		for (const next of toEnable) {
+			for (const sibling of getExclusiveSiblings(next)) {
+				if (this.enabledFeatures.has(sibling)) {
+					this.disable(sibling);
+				}
+			}
+		}
+
+		for (const next of toEnable) {
+			this.enabledFeatures.add(next);
+		}
 		this.saveState();
 		this.emit('enable', feature);
 	}
@@ -186,6 +233,29 @@ class FeaturesService extends EventEmitter<Events> {
 	 */
 	public disable(feature: Features): void {
 		this.enabledFeatures.delete(feature);
+		for (const child of getAllChildren(feature)) {
+			if (this.enabledFeatures.has(child)) {
+				this.enabledFeatures.delete(child);
+				this.emit('disable', child);
+			}
+		}
+
+		// Encryption must always have an active mode
+		if (
+			feature === Features.Symmetric ||
+			feature === Features.Asymmetric
+		) {
+			if (
+				this.enabledFeatures.has(Features.Encryption) &&
+				!this.enabledFeatures.has(Features.Symmetric) &&
+				!this.enabledFeatures.has(Features.Asymmetric)
+			) {
+				this.enabledFeatures.delete(Features.Encryption);
+				this.emit('disable', Features.Encryption);
+			}
+		}
+
+
 		this.saveState();
 		this.emit('disable', feature);
 	}
@@ -208,16 +278,31 @@ class FeaturesService extends EventEmitter<Events> {
 	 */
 	public addAvailableFeature(feature: Features): void {
 		this.availableFeatures.add(feature);
+		// Encryption always gets a default mode
+		if (feature === Features.Encryption) {
+			this.availableFeatures.add(Features.Symmetric);
+			if (
+				!this.enabledFeatures.has(Features.Symmetric) &&
+				!this.enabledFeatures.has(Features.Asymmetric)
+			) {
+				this.enable(Features.Symmetric);
+			}
+			return;
+		}
 		this.enable(feature);
-		this.saveState();
 	}
 
-	/**
-	 * Marks a feature as unavailable, removing it from the available features set.
-	 * @param feature Feature to remove
-	 */
 	public removeAvailableFeature(feature: Features): void {
 		this.availableFeatures.delete(feature);
+
+		if (this.enabledFeatures.has(feature)) {
+			this.disable(feature);
+		}
+
+		for (const child of getAllChildren(feature)) {
+			this.removeAvailableFeature(child);
+		}
+
 		this.saveState();
 	}
 
