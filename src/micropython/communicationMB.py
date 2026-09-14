@@ -23,8 +23,14 @@ send_on_permitted = False
 encryptable = False
 auto_encryptable = False
 allow_recipient = False
+asym_enabled = False
 should_beep = False
 encryption_code = ""
+ct_sender_name = ""
+ct_recipient_name = ""
+ct_c1 = ""
+ct_c2 = ""
+ct_send_permitted = False
 receive_from_known = []
 packed_image = ""
 image_broadcast_debounce = 0
@@ -160,7 +166,14 @@ while True:
                 auto_encryptable = uartmessage.split("_")[4] == "1"
                 allow_recipient = uartmessage.split("_")[5] == "1"
                 should_beep = uartmessage.split("_")[6] == "1"
+                asym_enabled = uartmessage.split("_")[7] == "1"
                 broadcast_settings()
+            if code == "sendCiphertext":
+                ct_sender_name = uartmessage.split("_")[3]
+                ct_recipient_name = uartmessage.split("_")[4]
+                ct_c1 = uartmessage.split("_")[5]
+                ct_c2 = uartmessage.split("_")[6]
+                ct_send_permitted = True
 
             if code == "forgetAll":
                 known_microbits = []
@@ -214,9 +227,9 @@ while True:
                 broadcast_images()
                 broadcast_settings()
 
-            if "send" in message:
-                messageComponents = message.split("_")
+            messageComponents = message.split("_")
 
+            if len(messageComponents) >= 2 and messageComponents[1] == "send":
                 # [0] = id; [1] = message code; [2] = recipient id; [3] = packed image index; [4] = code
 
                 sender_id = str(messageComponents[0])
@@ -248,6 +261,22 @@ while True:
                 )  # nm: new message
                 write_to_computer("mbc_" + str(len(known_microbits)))
 
+            if len(messageComponents) == 5 and messageComponents[1] == "sendct":
+                sender_id = str(messageComponents[0])
+                recipient_id = int(messageComponents[2])
+                if 0 <= recipient_id < len(known_microbits):
+                    recipient_name = known_microbits[recipient_id][0]
+                    write_to_computer(
+                        "nct_"
+                        + sender_id
+                        + "_"
+                        + recipient_name
+                        + "_"
+                        + messageComponents[3]
+                        + "_"
+                        + messageComponents[4]
+                    )
+
         if send_on_permitted:
             sender_number = 0
             for i, microbit in enumerate(known_microbits):
@@ -264,6 +293,23 @@ while True:
             )
             send_on_permitted = False
 
+        if ct_send_permitted:
+            sender_number = 0
+            for i, microbit in enumerate(known_microbits):
+                if microbit[0] == ct_sender_name:
+                    sender_number = i
+
+            send_radio_message(
+                ct_recipient_name
+                + "_receivect_"
+                + ct_c1
+                + "_"
+                + ct_c2
+                + "_"
+                + str(sender_number)
+            )
+            ct_send_permitted = False
+
         if (
             should_broadcast_images
             and (time.ticks_ms() - image_broadcast_debounce) > 500
@@ -277,7 +323,7 @@ while True:
             should_broadcast_settings
             and (time.ticks_ms() - settings_broadcast_debounce) > 500
         ):
-            # settings_| isEncryptable |_| autoEncrypt |_| allowRecipient |_| shouldBeep |
+            # settings_| symmetric |_| autoEncrypt |_| allowRecipient |_| shouldBeep |_| asymmetric |
             send_radio_message(
                 "settings_"
                 + ("1" if encryptable else "0")
@@ -287,6 +333,8 @@ while True:
                 + ("1" if allow_recipient else "0")
                 + "_"
                 + ("1" if should_beep else "0")
+                + "_"
+                + ("1" if asym_enabled else "0")
             )
             settings_broadcast_debounce = 0
             should_broadcast_settings = False

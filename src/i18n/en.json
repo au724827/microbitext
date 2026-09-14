@@ -217,15 +217,26 @@
 		"addPublicKey": "Add public key",
 		"otherDeviceName": "Micro:bit name",
 		"otherDeviceNamePlaceholder": "e.g. tugov",
+		"deviceId": "Displayed micro:bit ID",
+		"deviceIdPlaceholder": "e.g. 2",
+		"deviceIdValue": "ID {{id}}",
 		"missingName": "Enter the other micro:bit's name.",
+		"invalidDeviceId": "Enter the positive number shown on the other micro:bit.",
 		"add": "Add",
 		"removePublicKey": "Remove",
 		"duplicateName": "That name is already on your list.",
+		"duplicateKey": "That name or micro:bit ID is already on your list, or the public key is invalid.",
 		"emptyPublicKey": "Draw the public key pattern before adding it.",
 		"encrypt": "Encrypt",
 		"decrypt": "Decrypt",
 		"selectRecipient": "Choose who to encrypt to",
 		"needKeys": "Generate your key pair and add a public key before you can encrypt or decrypt.",
+		"incomingMessages": "Incoming ciphertexts",
+		"decryptedResult": "Decrypted image",
+		"decryptWithSecretKey": "Decrypt with my private key",
+		"dismiss": "Dismiss",
+		"noPrivateKeyYet": "Generate a key pair before decrypting.",
+		"decryptFailed": "The ciphertext could not be decrypted.",
 		"asymmetricRequired": "Asymmetric encryption is not enabled. Enable it under Features, or ask your teacher for the feature code."
 	},
 	"teacher": {
@@ -268,6 +279,11 @@
 		"duplicate": {
 			"title": "Download to micro:bit again?",
 			"description": "This micro:bit has already been programmed. Do you want to download the program to the micro:bit again? This will overwrite the existing program."
+		},
+		"errors": {
+			"title": "Something went wrong",
+			"tryAgain": "Try again",
+			"disconnected": "The micro:bit was disconnected while programming. Reconnect it and try again."
 		},
 		"noWebUSBSupport": {
 			"title": "Unsupported browser",

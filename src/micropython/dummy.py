@@ -10,7 +10,6 @@ import music
 import time
 
 uart.init()
-print("#dummy&")
 
 id_number = "0"
 device_name = ""
@@ -24,7 +23,14 @@ allow_recipient = False
 output_message = []
 last_ping_received = 0
 reset_microbit_time = 0
+known_pk_names = []
+asym_enabled = False
+choosing_pk_target = False
+pk_target_index = 0
+chosen_pk_id = 0
+encryption_pending = False
 PING_INACTIVITY_TIMEOUT = 15000
+ENCRYPTION_TIMEOUT = 10000
 
 def show_inner_dot_animation():
     frames = (
@@ -77,6 +83,9 @@ radio.config(
 )
 radio.on()
 
+def write_to_computer(message):
+    print("#" + str(message) + "&")
+
 def microbit_friendly_name():
     codebook = (
         ("z", "v", "g", "p", "t"),
@@ -100,6 +109,7 @@ def microbit_friendly_name():
     return "".join(name)
 
 device_name = microbit_friendly_name()
+write_to_computer("dummy_" + device_name)
 
 def send_message(message_to_send):
     radio.send(device_name + "_" + str(message_to_send))
@@ -120,6 +130,14 @@ def build_send_image(frame_index):
 
 def matrix_to_image(matrix):
     return ":".join("".join(str(x * 9) for x in row) for row in matrix)
+
+def show_standby():
+    display.show(int(id_number) + 1)
+
+def show_error():
+    display.show(Image.NO)
+    sleep(1500)
+    show_standby()
 
 def set_recipients():
     global known_recipient_list
@@ -189,42 +207,178 @@ def unpack_image(payload):
         for c in payload
     ]
 
+def show_ciphertext(packed_c1, packed_c2, sender):
+    write_to_computer("ct_" + packed_c1 + "_" + packed_c2)
+    display.show(Image(matrix_to_image(unpack_image(packed_c1))))
+    sleep(1800)
+    display.show(Image(matrix_to_image(unpack_image(packed_c2))))
+    sleep(1800)
+    display.show(Image.ARROW_W)
+    sleep(700)
+    display.show(sender + 1)
+    sleep(1500)
+    show_standby()
+
+def check_serial():
+    global known_pk_names, encryption_pending
+
+    if not uart.any():
+        return
+
+    sleep(100)
+    raw_message = uart.readline()
+
+    try:
+        command = raw_message.decode().strip()
+    except:
+        command = str(raw_message)
+
+    if command.startswith("b'"):
+        command = command[2:-1].replace("\\r", "").replace("\\n", "")
+    if command.startswith("__"):
+        command = command[2:]
+    command = command.strip("_")
+    parts = command.split("_")
+
+    if parts[0] == "ping":
+        write_to_computer("dummy_" + device_name)
+
+    if parts[0] == "pks":
+        if len(parts) > 1 and parts[1]:
+            known_pk_names = [int(value) for value in parts[1].split(",") if value]
+        else:
+            known_pk_names = []
+
+    if parts[0] == "sendct" and len(parts) == 4:
+        encryption_pending = False
+        send_message(
+            "sendct_" + parts[1] + "_" + parts[2] + "_" + parts[3]
+        )
+        send_animation()
+
+    if parts[0] == "senderr":
+        encryption_pending = False
+        show_error()
+
+def abort_menus():
+    global output_message, code_string, ready_to_send, encrypting_message
+    global choosing_content, choosing_recipient, choosing_pk_target
+    global message_number, recipient_index, pk_target_index
+    output_message = []
+    code_string = ""
+    ready_to_send = False
+    encrypting_message = False
+    choosing_content = False
+    choosing_recipient = False
+    choosing_pk_target = False
+    message_number = 0
+    recipient_index = 0
+    pk_target_index = 0
+
+def handle_radio(message, in_menu=False):
+    global known, id_number, known_recipients, last_known_ping, last_ping_received
+    global encryptable, auto_encryptable, allow_recipient, should_beep, asym_enabled
+    global output_message, code_string, packed_received_image
+    global message_sender, message_complete
+
+    parts = message.split("_")
+    count = len(parts)
+    code = parts[1] if count > 1 else ""
+    mine = parts[0] == device_name
+
+    if mine:
+        known = True
+
+    if parts[0] == "ping":
+        last_ping_received = time.ticks_ms()
+
+    elif parts[0] == "settings" and count == 6:
+        encryptable = parts[1] == "1"
+        auto_encryptable = parts[2] == "1"
+        allow_recipient = parts[3] == "1"
+        should_beep = parts[4] == "1"
+        asym_enabled = parts[5] == "1"
+
+    elif parts[0] == "known" and count == 2:
+        known_recipients = int(parts[1])
+
+    elif parts[0] == "image" and count == 3:
+        if parts[2] not in led_images:
+            led_images.append(parts[2])
+
+    elif parts[0] == "removeImg" and count == 2:
+        if parts[1] in led_images:
+            led_images.remove(parts[1])
+
+    elif parts[0] == "reintroduce":
+        known = False
+        last_known_ping = time.ticks_ms() - ((10 - int(id_number)) * 100)
+        id_number = "0"
+        abort_menus()
+        display.clear()
+
+    elif mine and code == "number" and count == 4:
+        id_number = parts[2]
+        known_recipients = int(parts[3])
+        show_standby()
+
+    elif mine and code == "receivect" and count == 5:
+        show_ciphertext(parts[2], parts[3], int(parts[4]))
+
+    elif code == "complete":
+        output_message = [[], [], [], [], []]
+
+    elif code == "receive" and count >= 4 and (mine or not allow_recipient):
+        if in_menu:
+            abort_menus()
+            show_standby()
+            return
+
+        packed_received_image = parts[2]
+        message_sender = int(parts[3])
+        code_string = parts[4] if encryptable and count > 4 else ""
+
+        if mine or message_sender != int(id_number):
+            message_complete = True
+
 def check_radio():
-    global output_message, code_string
-    global ready_to_send, encrypting_message, choosing_content
-    global last_ping_received
+    message = radio.receive()
+    if message:
+        handle_radio(message, True)
 
-    radio_message = radio.receive()
+# The keys live in the browser, so a send is only over once it has answered.
+def wait_for_encryption():
+    global encryption_pending
+    encryption_pending = True
+    started = time.ticks_ms()
 
-    if radio_message:
-        if device_name in radio_message:
-            display.clear()
-            display.show(int(id_number) + 1)
-            output_message = []
-            code_string = ""
-            ready_to_send = False
-            encrypting_message = False
-            choosing_content = False
+    while encryption_pending and time.ticks_ms() - started < ENCRYPTION_TIMEOUT:
+        check_serial()
+        check_radio()
 
-        if (
-            "settings" in radio_message
-            or "known" in radio_message
-            or "image" in radio_message
-            or "removeImg" in radio_message
-            or "reintroduce" in radio_message
-        ):
-            machine.reset()
-
-        if "ping" in radio_message:
-            last_ping_received = time.ticks_ms()
+    if encryption_pending:
+        encryption_pending = False
+        show_error()
 
 last_state_a = False
 last_state_b = False
+buttons_latched = False
 
+# Only true on the press itself, so holding both buttons cannot confirm
+# several menu steps in a row.
 def both_buttons_pressed():
-        return button_a.is_pressed() and button_b.is_pressed()
+    global buttons_latched
+    pressed = button_a.is_pressed() and button_b.is_pressed()
 
+    if not pressed:
+        buttons_latched = False
+        return False
 
+    if buttons_latched:
+        return False
+
+    buttons_latched = True
+    return True
 
 def button_a_was_released():
     global last_state_a
@@ -241,9 +395,10 @@ def button_b_was_released():
     return released
 
 def reset_button_states():
-    global last_state_a, last_state_b
+    global last_state_a, last_state_b, buttons_latched
     last_state_a = button_a.is_pressed()
     last_state_b = button_b.is_pressed()
+    buttons_latched = last_state_a and last_state_b
     button_a.was_pressed()
     button_b.was_pressed()
 
@@ -273,69 +428,12 @@ def input_code():
     return current_input
 
 while True:
-    if uart.any():
-        print("#dummy&")
+    check_serial()
 
     message = radio.receive()
 
     if message:
-        if device_name in message:
-            known = True
-
-            if "number" in message:
-                parts = message.split("_")
-                id_number = parts[2]
-                known_recipients = int(parts[3])
-                display.show(int(id_number) + 1)
-
-            if "receive" in message:
-                parts = message.split("_")
-                packed_received_image = parts[2]
-                message_sender = int(parts[3])
-                code_string = parts[4] if encryptable else ""
-                message_complete = True
-
-        if "reintroduce" in message:
-            known = False
-            last_known_ping = time.ticks_ms() - ((10 - int(id_number)) * 100)
-            id_number = "0"
-            display.clear()
-
-        if "known" in message:
-            known_recipients = int(message.split("_")[1])
-
-        if "image" in message:
-            packedNewImage = message.split("_")[2]
-            if packedNewImage not in led_images:
-                led_images.append(packedNewImage)
-
-        if "removeImg" in message:
-            packedImageToRemove = message.split("_")[1]
-            if packedImageToRemove in led_images:
-                led_images.remove(packedImageToRemove)
-
-        if "settings" in message:
-            encryptable = message.split("_")[1] == "1"
-            auto_encryptable = message.split("_")[2] == "1"
-            allow_recipient = message.split("_")[3] == "1"
-            should_beep = message.split("_")[4] == "1"
-
-        if "complete" in message:
-            output_message = [[], [], [], [], []]
-
-        if "receive" in message and not allow_recipient:
-            parts = message.split("_")
-            packed_received_image = parts[2]
-            message_sender = int(parts[3])
-
-            if encryptable:
-                code_string = parts[4]
-
-            if message_sender != int(id_number):
-                message_complete = True
-
-        if "ping" in message:
-            last_ping_received = time.ticks_ms()
+        handle_radio(message)
 
     if known and time.ticks_ms() - last_ping_received > PING_INACTIVITY_TIMEOUT:
         machine.reset()
@@ -361,22 +459,17 @@ while True:
             code = input_code()
             output_message = create_encryption(output_message)
             encrypt_image(output_message)
-            sleep(4000)
-            display.show(Image.ARROW_W)
-            sleep(1000)
-            display.show(int(message_sender) + 1)
-            reset_microbit_time = True
-        else:
-            sleep(4000)
-            display.show(Image.ARROW_W)
-            sleep(1000)
-            display.show(int(message_sender) + 1)
-            reset_microbit_time = True
+
+        sleep(4000)
+        display.show(Image.ARROW_W)
+        sleep(1000)
+        display.show(int(message_sender) + 1)
+        reset_microbit_time = True
 
     if reset_microbit_time:
         sleep(2000)
         display.clear()
-        display.show(int(id_number) + 1)
+        show_standby()
         output_message = []
         code = []
         code_string = ""
@@ -384,7 +477,6 @@ while True:
         packed_received_image = []
         message_complete = False
         reset_microbit_time = False
-        last_recorded_message = time.ticks_ms()
 
     if not known and time.ticks_ms() - last_known_ping > 1000:
         send_message("hello")
@@ -414,7 +506,18 @@ while True:
                 for j in range(5):
                     output_message[i].append(selected_image[i][j])
 
-            if encryptable:
+            if asym_enabled:
+                if not known_pk_names:
+                    show_error()
+                    choosing_content = False
+                else:
+                    display.show(Image.DIAMOND)
+                    sleep(1000)
+                    pk_target_index = 0
+                    display.show(known_pk_names[pk_target_index])
+                    choosing_pk_target = True
+                    choosing_content = False
+            elif encryptable:
                 display.show(Image("00000:09000:90999:09009:00000"))
                 sleep(1000)
                 display.clear()
@@ -451,6 +554,51 @@ while True:
             )
 
         display.show(get_image(message_number))
+
+    while choosing_pk_target:
+        check_radio()
+        check_serial()
+
+        if not known_pk_names:
+            choosing_pk_target = False
+            show_error()
+            break
+
+        if pk_target_index >= len(known_pk_names):
+            pk_target_index = 0
+
+        if both_buttons_pressed():
+            chosen_pk_id = known_pk_names[pk_target_index]
+            known_recipient_list = set_recipients()
+            if not known_recipient_list:
+                show_error()
+                choosing_pk_target = False
+                break
+
+            display.show(Image.ARROW_E)
+            sleep(1000)
+            recipient_index = 0
+            display.show(known_recipient_list[recipient_index] + 1)
+            choosing_recipient = True
+            choosing_pk_target = False
+            reset_button_states()
+            break
+
+        if button_a_was_released():
+            pk_target_index = (
+                len(known_pk_names) - 1
+                if pk_target_index == 0
+                else pk_target_index - 1
+            )
+
+        if button_b_was_released():
+            pk_target_index = (
+                0
+                if pk_target_index == len(known_pk_names) - 1
+                else pk_target_index + 1
+            )
+
+        display.show(known_pk_names[pk_target_index])
 
     while encrypting_message:
         check_radio()
@@ -490,6 +638,7 @@ while True:
 
     while choosing_recipient:
         check_radio()
+        check_serial()
 
         if both_buttons_pressed():
             sending_message = True
@@ -514,24 +663,34 @@ while True:
         display.show(known_recipient_list[recipient_index] + 1)
 
     while sending_message:
-        send_animation()
-        sleep(500)
-
         message_recipient = (
             str(known_recipient_list[recipient_index])
-            if allow_recipient
+            if allow_recipient or asym_enabled
             else "-1"
         )
 
-        send_message(
-            "send_"
-            + message_recipient
-            + "_"
-            + str(pack_image(output_message))
-            + ("_" + code_string if encryptable else "")
-        )
+        if asym_enabled:
+            write_to_computer(
+                "encrypt_"
+                + str(pack_image(output_message))
+                + "_"
+                + str(chosen_pk_id)
+                + "_"
+                + message_recipient
+            )
+            display.show(Image("99999:09090:00900:09090:99999"))
+            wait_for_encryption()
+        else:
+            send_animation()
+            sleep(500)
+            send_message(
+                "send_"
+                + message_recipient
+                + "_"
+                + str(pack_image(output_message))
+                + ("_" + code_string if encryptable else "")
+            )
 
-        recipient_index = 0
-        message_number = 0
-        display.show(int(id_number) + 1)
         sending_message = False
+        abort_menus()
+        show_standby()

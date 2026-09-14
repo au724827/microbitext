@@ -3,16 +3,18 @@ import { alert } from '../helpers/popup';
 import { registerOnWindow } from '../helpers/window';
 import { Features, features } from './features.svelte';
 import { MicrobitSerialConnection } from './serial_connection';
-import { generateKeyPair, decrypt, type Ciphertext} from './elgamal'; 
+import { decrypt, encrypt, generateKeyPair, isEncryptable, P, type Ciphertext } from './elgamal';
 import {
 	unpackImage,
 	imageMatrixToInt,
 	intToImageMatrix,
+	packImage,
 	type ImageMatrix
 } from '../helpers/images';
 
 export type LearnedPublicKey = {
 	name: string;
+	deviceId: number;
 	publicKey: number;
 };
 
@@ -105,16 +107,25 @@ class ClientMicrobitService {
 		this.saveKeys();
 	}
 
-	public addLearnedPublicKey(name: string, publicKey: number): boolean {
+	public addLearnedPublicKey(name: string, deviceId: number, publicKey: number): boolean {
 		const trimmed = name.trim().toLowerCase();
-		if (!trimmed || publicKey <= 0) {
+		if (
+			!trimmed ||
+			!Number.isInteger(deviceId) ||
+			deviceId < 1 ||
+			!Number.isInteger(publicKey) ||
+			publicKey <= 0 ||
+			publicKey >= Number(P)
+		) {
 			return false;
 		}
-		if (this.learnedPublicKeys.some((entry) => entry.name === trimmed)) {
+		if (
+			this.learnedPublicKeys.some((entry) => entry.name === trimmed || entry.deviceId === deviceId)
+		) {
 			return false;
 		}
 
-		this.learnedPublicKeys = [...this.learnedPublicKeys, { name: trimmed, publicKey }];
+		this.learnedPublicKeys = [...this.learnedPublicKeys, { name: trimmed, deviceId, publicKey }];
 		this.saveKeys();
 		void this.syncAllowedPublicKeys();
 		return true;
@@ -129,7 +140,6 @@ class ClientMicrobitService {
 	public hasLearnedPublicKey(name: string): boolean {
 		return this.learnedPublicKeys.some((entry) => entry.name === name);
 	}
-
 
 	public decryptEntry(id: string) {
 		const entry = this.ciphertextQueue.find((e) => e.id === id);
@@ -146,21 +156,19 @@ class ClientMicrobitService {
 		} catch (err) {
 			console.error('Decryption failed:', err);
 			entry.decryptError = t('clientInterface.decryptFailed');
-		}	
+		}
 	}
 
 	public dismissEntry(id: string) {
 		this.ciphertextQueue = this.ciphertextQueue.filter((e) => e.id !== id);
 	}
-	
-
 
 	private async syncAllowedPublicKeys() {
 		if (!this.identified || !features.isActive(Features.Asymmetric)) {
 			return;
 		}
-		const names = this.learnedPublicKeys.map((entry) => entry.name).join('_');
-		await this.serial.write(names ? `pks_${names}` : 'pks');
+		const ids = this.learnedPublicKeys.map((entry) => entry.deviceId).join(',');
+		await this.serial.write(ids ? `pks_${ids}` : 'pks');
 	}
 
 	private keysStorageKey(deviceName: string) {
@@ -179,7 +187,14 @@ class ClientMicrobitService {
 			const stored = JSON.parse(raw) as StoredKeys;
 			this.privateKey = stored.privateKey ?? null;
 			this.publicKey = stored.publicKey ?? null;
-			this.learnedPublicKeys = stored.learnedPublicKeys ?? [];
+			this.learnedPublicKeys = (stored.learnedPublicKeys ?? []).filter(
+				(entry) =>
+					Number.isInteger(entry.deviceId) &&
+					entry.deviceId >= 1 &&
+					Number.isInteger(entry.publicKey) &&
+					entry.publicKey > 0 &&
+					entry.publicKey < Number(P)
+			);
 		} catch (error) {
 			console.error('Failed to load client keys:', error);
 			this.privateKey = null;
@@ -204,10 +219,16 @@ class ClientMicrobitService {
 		const messageCode = message.split('_')[0];
 
 		if (messageCode === 'dummy') {
-			this.deviceName = message.split('_')[1] || null;
+			const identifiedName = message.split('_')[1];
+			if (!identifiedName) {
+				return;
+			}
+
+			const deviceChanged = this.deviceName !== identifiedName;
+			this.deviceName = identifiedName;
 			this.identified = true;
-			if (this.deviceName) {
-				this.loadKeys(this.deviceName);
+			if (deviceChanged) {
+				this.loadKeys(identifiedName);
 			}
 			if (features.isActive(Features.Asymmetric)) {
 				void this.syncAllowedPublicKeys();
@@ -216,10 +237,7 @@ class ClientMicrobitService {
 		}
 
 		if (messageCode === 'start') {
-			alert(
-				t('serial.serverMicrobitDetected.title'),
-				t('serial.serverMicrobitDetected.text')
-			);
+			alert(t('serial.serverMicrobitDetected.title'), t('serial.serverMicrobitDetected.text'));
 			this.serial.disconnect();
 			return;
 		}
@@ -247,8 +265,49 @@ class ClientMicrobitService {
 			return;
 		}
 
-		console.debug('Client micro:bit message:', message);
+		if (messageCode === 'encrypt') {
+			void this.handleEncryptRequest(message);
+			return;
+		}
 
+		console.debug('Client micro:bit message:', message);
+	}
+
+	private async handleEncryptRequest(message: string) {
+		const parts = message.split('_');
+		if (parts.length !== 4) {
+			console.warn('Malformed encryption request:', message);
+			await this.serial.write('senderr');
+			return;
+		}
+
+		const [, packedImage, targetIdText, recipientIndexText] = parts;
+		const targetId = Number(targetIdText);
+		const recipientIndex = Number(recipientIndexText);
+		const target = this.learnedPublicKeys.find((entry) => entry.deviceId === targetId);
+
+		try {
+			const plaintext = imageMatrixToInt(unpackImage(packedImage));
+			if (
+				!target ||
+				!Number.isInteger(recipientIndex) ||
+				recipientIndex < 0 ||
+				!isEncryptable(plaintext)
+			) {
+				await this.serial.write('senderr');
+				return;
+			}
+
+			const ciphertext = encrypt(plaintext, target.publicKey);
+			await this.serial.write(
+				`sendct_${recipientIndex}_${packImage(intToImageMatrix(ciphertext.c1))}_${packImage(
+					intToImageMatrix(ciphertext.c2)
+				)}`
+			);
+		} catch (error) {
+			console.error('Failed to encrypt outgoing image:', error);
+			await this.serial.write('senderr');
+		}
 	}
 }
 

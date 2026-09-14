@@ -18,6 +18,7 @@ type BooleanInt = 0 | 1;
 interface MessagesToMicrobit {
 	nmComp: [];
 	sendMessage: [senderName: string, recipientName: string, packedImage: string];
+	sendCiphertext: [senderName: string, recipientName: string, packedC1: string, packedC2: string];
 	newImg: [packedImage: string];
 	known: [microbitName: string];
 	knownImg: [packedImage: string];
@@ -96,19 +97,13 @@ class MicrobitService {
 		const messageCode = message.split('_')[0];
 
 		if (messageCode === 'dummy') {
-			alert(
-				t('serial.clientMicrobitDetected.title'),
-				t('serial.clientMicrobitDetected.text')
-			)
+			alert(t('serial.clientMicrobitDetected.title'), t('serial.clientMicrobitDetected.text'));
 			this.microbitSerial.disconnect();
 			return;
 		}
 
 		if (!this.hasRepliedToStart && messageCode != 'start') {
-			alert(
-				t('serial.unknownConnection.title'),
-				t('serial.unknownConnection.text')
-			)
+			alert(t('serial.unknownConnection.title'), t('serial.unknownConnection.text'));
 			console.warn('Microbit has not replied to start message yet, ignoring message:', message);
 			this.microbitSerial.disconnect();
 			return;
@@ -122,7 +117,7 @@ class MicrobitService {
 					alert(
 						t('serial.outdatedVersion.title'),
 						t('serial.outdatedVersion.text', { version: MicrobitService.VERSION })
-					)
+					);
 					this.microbitSerial.disconnect();
 				}
 				break;
@@ -135,6 +130,9 @@ class MicrobitService {
 			}
 			case 'nm':
 				this.handleNewMessage(message);
+				break;
+			case 'nct':
+				this.handleNewCiphertext(message);
 				break;
 			case 'mbc':
 				if (this.knownMicrobits.length != Number(message.split('_')[1])) {
@@ -210,6 +208,17 @@ class MicrobitService {
 		}
 
 		this.writeToMB('sendMessage', sender, receiver, packImage(messageImage));
+	}
+
+	private async handleNewCiphertext(message: string) {
+		const messageParts = message.split('_');
+		if (messageParts.length !== 5) {
+			console.warn('Malformed ciphertext route message:', message);
+			return;
+		}
+
+		const [, sender, receiver, packedC1, packedC2] = messageParts;
+		await this.writeToMB('sendCiphertext', sender, receiver, packedC1, packedC2);
 	}
 
 	public async rebuildConnection() {

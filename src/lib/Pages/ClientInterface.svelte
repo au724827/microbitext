@@ -18,11 +18,11 @@
 	let error: string | undefined = $state();
 	let privateKeyVisible = $state(true);
 	let newPkName = $state('');
+	let newPkId = $state('');
 	let newPkImage = $state(cloneImage(COMMON_IMAGES.EMPTY));
 	let addError: string | undefined = $state();
 
 	const asymmetricEnabled = $derived(features.isActive(Features.Asymmetric));
-
 
 	function handleConnect() {
 		error = undefined;
@@ -46,16 +46,26 @@
 			addError = scopedT('missingName');
 			return;
 		}
+		const deviceId = Number(newPkId);
+		if (!Number.isInteger(deviceId) || deviceId < 1) {
+			addError = scopedT('invalidDeviceId');
+			return;
+		}
 		if (isEmptyImage(newPkImage)) {
 			addError = scopedT('emptyPublicKey');
 			return;
 		}
-		const added = clientMicrobitService.addLearnedPublicKey(name, imageMatrixToInt(newPkImage));
+		const added = clientMicrobitService.addLearnedPublicKey(
+			name,
+			deviceId,
+			imageMatrixToInt(newPkImage)
+		);
 		if (!added) {
-			addError = scopedT('duplicateName');
+			addError = scopedT('duplicateKey');
 			return;
 		}
 		newPkName = '';
+		newPkId = '';
 		newPkImage = cloneImage(COMMON_IMAGES.EMPTY);
 	}
 
@@ -77,7 +87,6 @@
 	</header>
 
 	<hr />
-
 
 	{#if !asymmetricEnabled}
 		<section class="connect">
@@ -134,7 +143,9 @@
 						matrix={intToImageMatrix(clientMicrobitService.publicKey)}
 						caption={scopedT('publicKey')}
 					/>
-					<p class="bits">{scopedT('bitString')}: {intToImageMatrix(clientMicrobitService.publicKey)}</p>
+					<p class="bits">
+						{scopedT('bitString')}: {intToImageMatrix(clientMicrobitService.publicKey)}
+					</p>
 				</article>
 			</div>
 		{/if}
@@ -155,6 +166,7 @@
 									caption={entry.name}
 								/>
 								<span class="learned-name">{entry.name}</span>
+								<span class="device-id">{scopedT('deviceIdValue', { id: entry.deviceId })}</span>
 							</div>
 							<button class="transparent" onclick={() => handleRemovePublicKey(entry.name)}>
 								{scopedT('removePublicKey')}
@@ -177,6 +189,19 @@
 						/>
 					</div>
 				</div>
+				<div class="input-field">
+					<label for="pk-id">{scopedT('deviceId')}</label>
+					<div class="input-container">
+						<input
+							id="pk-id"
+							type="number"
+							min="1"
+							step="1"
+							bind:value={newPkId}
+							placeholder={scopedT('deviceIdPlaceholder')}
+						/>
+					</div>
+				</div>
 				<InteractiveBitString bind:image={newPkImage} onHover={() => {}} />
 				<button class="large" onclick={handleAddPublicKey}>{scopedT('add')}</button>
 				{#if addError}
@@ -193,11 +218,17 @@
 						<li class="ciphertext-entry">
 							<div class="ciphertext-parts">
 								<div class="ciphertext-part">
-									<ImageMatrixRenderer matrix={intToImageMatrix(entry.ciphertext.c1)} caption="c1" />
+									<ImageMatrixRenderer
+										matrix={intToImageMatrix(entry.ciphertext.c1)}
+										caption="c1"
+									/>
 									<span class="key-hint">c1</span>
 								</div>
 								<div class="ciphertext-part">
-									<ImageMatrixRenderer matrix={intToImageMatrix(entry.ciphertext.c2)} caption="c2" />
+									<ImageMatrixRenderer
+										matrix={intToImageMatrix(entry.ciphertext.c2)}
+										caption="c2"
+									/>
 									<span class="key-hint">c2</span>
 								</div>
 							</div>
@@ -205,7 +236,10 @@
 							{#if entry.decryptedImage}
 								<div class="decrypted-result">
 									<h3>{scopedT('decryptedResult')}</h3>
-									<ImageMatrixRenderer matrix={entry.decryptedImage} caption={scopedT('decryptedResult')} />
+									<ImageMatrixRenderer
+										matrix={entry.decryptedImage}
+										caption={scopedT('decryptedResult')}
+									/>
 								</div>
 							{:else}
 								<button class="large" onclick={() => clientMicrobitService.decryptEntry(entry.id)}>
@@ -217,7 +251,10 @@
 								<span class="error">{entry.decryptError}</span>
 							{/if}
 
-							<button class="transparent" onclick={() => clientMicrobitService.dismissEntry(entry.id)}>
+							<button
+								class="transparent"
+								onclick={() => clientMicrobitService.dismissEntry(entry.id)}
+							>
 								{scopedT('dismiss')}
 							</button>
 						</li>
@@ -226,7 +263,6 @@
 			</section>
 		{/if}
 
-		
 		{#if clientMicrobitService.connected && clientMicrobitService.identified}
 			<button class="large transparent" onclick={handleDisconnect}>{scopedT('disconnect')}</button>
 		{/if}
@@ -377,6 +413,11 @@
 		text-transform: uppercase;
 	}
 
+	.device-id {
+		color: var(--muted-grey);
+		font-family: var(--mono);
+	}
+
 	.add-pk {
 		text-align: left;
 	}
@@ -390,7 +431,6 @@
 		border: none;
 		border-top: 1px solid var(--stroke);
 	}
-
 
 	@media (max-width: 560px) {
 		.keys {
