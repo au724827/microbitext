@@ -3,6 +3,7 @@ import { alert } from '../helpers/popup';
 import { registerOnWindow } from '../helpers/window';
 import { Features, features } from './features.svelte';
 import { MicrobitSerialConnection } from './serial_connection';
+import { generateKeyPair } from './elgamal'; 
 
 export type LearnedPublicKey = {
 	name: string;
@@ -12,6 +13,8 @@ export type LearnedPublicKey = {
 const KEYS_STORAGE = 'bit:chat:client-keys';
 
 type StoredKeys = {
+	privateKey: number | null;
+	publicKey: number | null;
 	learnedPublicKeys: LearnedPublicKey[];
 };
 
