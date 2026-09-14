@@ -1,3 +1,5 @@
+// run with: npx vite-node src/helpers/elgamal.test.ts
+
 import { generateKeyPair, encrypt, decrypt, isEncryptable } from '../services/elgamal';
 
 type ImageMatrix = number[][];
