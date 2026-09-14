@@ -3,12 +3,28 @@ import { alert } from '../helpers/popup';
 import { registerOnWindow } from '../helpers/window';
 import { Features, features } from './features.svelte';
 import { MicrobitSerialConnection } from './serial_connection';
-import { generateKeyPair } from './elgamal'; 
+import { generateKeyPair, decrypt, type Ciphertext} from './elgamal'; 
+import {
+	unpackImage,
+	imageMatrixToInt,
+	intToImageMatrix,
+	type ImageMatrix
+} from '../helpers/images';
 
 export type LearnedPublicKey = {
 	name: string;
 	publicKey: number;
 };
+
+export type CiphertextEntry = {
+	id: string;
+	receivedAt: number;
+	ciphertext: Ciphertext;
+	decryptedImage: ImageMatrix | null;
+	decryptError: string | undefined;
+};
+
+const MAX_QUEUE_LENGTH = 10;
 
 const KEYS_STORAGE = 'bit:chat:client-keys';
 
@@ -39,6 +55,7 @@ class ClientMicrobitService {
 	public privateKey: number | null = $state(null);
 	public publicKey: number | null = $state(null);
 	public learnedPublicKeys: LearnedPublicKey[] = $state([]);
+	public ciphertextQueue: CiphertextEntry[] = $state([]);
 
 	private constructor() {
 		this.serial
@@ -51,6 +68,7 @@ class ClientMicrobitService {
 				this.privateKey = null;
 				this.publicKey = null;
 				this.learnedPublicKeys = [];
+				this.ciphertextQueue = [];
 			});
 	}
 
@@ -111,6 +129,31 @@ class ClientMicrobitService {
 	public hasLearnedPublicKey(name: string): boolean {
 		return this.learnedPublicKeys.some((entry) => entry.name === name);
 	}
+
+
+	public decryptEntry(id: string) {
+		const entry = this.ciphertextQueue.find((e) => e.id === id);
+		if (!entry) return;
+
+		entry.decryptError = undefined;
+		if (this.privateKey === null) {
+			entry.decryptError = t('clientInterface.noPrivateKeyYet');
+			return;
+		}
+		try {
+			const value = decrypt(entry.ciphertext, this.privateKey);
+			entry.decryptedImage = intToImageMatrix(value);
+		} catch (err) {
+			console.error('Decryption failed:', err);
+			entry.decryptError = t('clientInterface.decryptFailed');
+		}	
+	}
+
+	public dismissEntry(id: string) {
+		this.ciphertextQueue = this.ciphertextQueue.filter((e) => e.id !== id);
+	}
+	
+
 
 	private async syncAllowedPublicKeys() {
 		if (!this.identified || !features.isActive(Features.Asymmetric)) {
@@ -181,7 +224,31 @@ class ClientMicrobitService {
 			return;
 		}
 
+		if (messageCode === 'ct') {
+			const parts = message.split('_');
+			if (parts.length !== 3) {
+				console.warn('Malformed ciphertext message:', message);
+				return;
+			}
+			try {
+				const c1 = imageMatrixToInt(unpackImage(parts[1]));
+				const c2 = imageMatrixToInt(unpackImage(parts[2]));
+				const entry: CiphertextEntry = {
+					id: crypto.randomUUID(),
+					receivedAt: Date.now(),
+					ciphertext: { c1, c2 },
+					decryptedImage: null,
+					decryptError: undefined
+				};
+				this.ciphertextQueue = [entry, ...this.ciphertextQueue].slice(0, MAX_QUEUE_LENGTH);
+			} catch (err) {
+				console.error('Failed to parse incoming ciphertext:', err);
+			}
+			return;
+		}
+
 		console.debug('Client micro:bit message:', message);
+
 	}
 }
 

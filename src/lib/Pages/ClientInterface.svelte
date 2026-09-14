@@ -10,7 +10,6 @@
 	} from '../../helpers/images';
 	import { clientMicrobitService } from '../../services/client_microbit.svelte';
 	import { Features, features } from '../../services/features.svelte';
-	import FeaturesDropdown from '../Components/FeaturesDropdown.svelte';
 	import ImageMatrixRenderer from '../Components/ImageMatrixRenderer.svelte';
 	import InteractiveBitString from '../Components/InteractiveBitString.svelte';
 
@@ -117,7 +116,7 @@
 							caption={scopedT('privateKey')}
 						/>
 						<p class="bits">
-							{scopedT('bitString')}: {groupedBits(clientMicrobitService.privateKey)}
+							{scopedT('bitString')}: {intToImageMatrix(clientMicrobitService.privateKey)}
 						</p>
 					{:else}
 						<div class="key-hidden" role="img" aria-label={scopedT('privateKeyHidden')}>
@@ -135,7 +134,7 @@
 						matrix={intToImageMatrix(clientMicrobitService.publicKey)}
 						caption={scopedT('publicKey')}
 					/>
-					<p class="bits">{scopedT('bitString')}: {groupedBits(clientMicrobitService.publicKey)}</p>
+					<p class="bits">{scopedT('bitString')}: {intToImageMatrix(clientMicrobitService.publicKey)}</p>
 				</article>
 			</div>
 		{/if}
@@ -186,6 +185,48 @@
 			</article>
 		</section>
 
+		{#if clientMicrobitService.ciphertextQueue.length > 0}
+			<section class="incoming">
+				<h2>{scopedT('incomingMessages')}</h2>
+				<ul class="ciphertext-queue">
+					{#each clientMicrobitService.ciphertextQueue as entry (entry.id)}
+						<li class="ciphertext-entry">
+							<div class="ciphertext-parts">
+								<div class="ciphertext-part">
+									<ImageMatrixRenderer matrix={intToImageMatrix(entry.ciphertext.c1)} caption="c1" />
+									<span class="key-hint">c1</span>
+								</div>
+								<div class="ciphertext-part">
+									<ImageMatrixRenderer matrix={intToImageMatrix(entry.ciphertext.c2)} caption="c2" />
+									<span class="key-hint">c2</span>
+								</div>
+							</div>
+
+							{#if entry.decryptedImage}
+								<div class="decrypted-result">
+									<h3>{scopedT('decryptedResult')}</h3>
+									<ImageMatrixRenderer matrix={entry.decryptedImage} caption={scopedT('decryptedResult')} />
+								</div>
+							{:else}
+								<button class="large" onclick={() => clientMicrobitService.decryptEntry(entry.id)}>
+									{scopedT('decryptWithSecretKey')}
+								</button>
+							{/if}
+
+							{#if entry.decryptError}
+								<span class="error">{entry.decryptError}</span>
+							{/if}
+
+							<button class="transparent" onclick={() => clientMicrobitService.dismissEntry(entry.id)}>
+								{scopedT('dismiss')}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
+		
 		{#if clientMicrobitService.connected && clientMicrobitService.identified}
 			<button class="large transparent" onclick={handleDisconnect}>{scopedT('disconnect')}</button>
 		{/if}
@@ -350,15 +391,58 @@
 		border-top: 1px solid var(--stroke);
 	}
 
-	.feature-toggle {
-		width: 100%;
-		display: flex;
-		justify-content: flex-end;
-	}
 
 	@media (max-width: 560px) {
 		.keys {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	.incoming {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 1rem;
+		width: 100%;
+		text-align: center;
+	}
+
+	.ciphertext-parts {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+	}
+
+	.ciphertext-part {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.decrypted-result {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.ciphertext-queue {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.ciphertext-entry {
+		border: 1px solid var(--stroke);
+		border-radius: 0.5rem;
+		padding: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
 	}
 </style>

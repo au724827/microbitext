@@ -14,6 +14,9 @@ export const G = 3n; // primitive root, according to https://codingace.net/maths
 * So we ensure that decryption is always possible, but encryption is not.
 */
 
+
+
+// Should 0 be encryptable to show it has ciphertext of zeros (to visualize some lack of security)
 export function isEncryptable(m: number): boolean {
 	return m > 0 && m < Number(P);
 }
