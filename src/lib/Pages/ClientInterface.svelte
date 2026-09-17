@@ -15,8 +15,13 @@
 
 	const scopedT = scope('clientInterface');
 
+	function formatBits(matrix: number[][]): string {
+		const bits = matrix.flat().join('');
+		return bits.match(/.{1,5}/g)?.join(':') ?? '';
+	}
+	const routerEnabled = $derived(features.isActive(Features.Router));
 	let error: string | undefined = $state();
-	let privateKeyVisible = $state(true);
+	let privateKeyVisible = $state(false);
 	let newPkName = $state('');
 	let newPkId = $state('');
 	let newPkImage = $state(cloneImage(COMMON_IMAGES.EMPTY));
@@ -35,7 +40,7 @@
 
 	function handleKeyGen() {
 		error = undefined;
-		privateKeyVisible = true;
+		privateKeyVisible = false;
 		clientMicrobitService.requestKeyGen().catch((err) => (error = err));
 	}
 
@@ -114,154 +119,169 @@
 			</section>
 		{/if}
 
-		{#if clientMicrobitService.privateKey !== null && clientMicrobitService.publicKey !== null}
-			<div class="keys">
-				<article class="key-card private">
-					<h2>{scopedT('privateKey')}</h2>
-					<p class="key-hint">{scopedT('keepSecret')}</p>
-					{#if privateKeyVisible}
-						<ImageMatrixRenderer
-							matrix={intToImageMatrix(clientMicrobitService.privateKey)}
-							caption={scopedT('privateKey')}
-						/>
-						<p class="bits">
-							{scopedT('bitString')}: {intToImageMatrix(clientMicrobitService.privateKey)}
-						</p>
-					{:else}
-						<div class="key-hidden" role="img" aria-label={scopedT('privateKeyHidden')}>
-							<p>{scopedT('privateKeyHidden')}</p>
-						</div>
-					{/if}
-					<button class="transparent" onclick={() => (privateKeyVisible = !privateKeyVisible)}>
-						{privateKeyVisible ? scopedT('hidePrivateKey') : scopedT('showPrivateKey')}
-					</button>
-				</article>
-				<article class="key-card public">
-					<h2>{scopedT('publicKey')}</h2>
-					<p class="key-hint">{scopedT('shareFreely')}</p>
-					<ImageMatrixRenderer
-						matrix={intToImageMatrix(clientMicrobitService.publicKey)}
-						caption={scopedT('publicKey')}
-					/>
-					<p class="bits">
-						{scopedT('bitString')}: {intToImageMatrix(clientMicrobitService.publicKey)}
-					</p>
-				</article>
-			</div>
-		{/if}
-
-		<section class="learned">
-			<h2>{scopedT('learnedKeys')}</h2>
-			<p class="key-hint">{scopedT('learnedKeysHint')}</p>
-
-			{#if clientMicrobitService.learnedPublicKeys.length === 0}
-				<p class="key-hint">{scopedT('noLearnedKeys')}</p>
-			{:else}
-				<ul class="learned-list">
-					{#each clientMicrobitService.learnedPublicKeys as entry (entry.name)}
-						<li>
-							<div class="learned-item">
+		<div class="columns">
+			<div class="column-left">
+				{#if clientMicrobitService.privateKey !== null && clientMicrobitService.publicKey !== null}
+					<div class="keys">
+						<article class="key-card private">
+							<h2>{scopedT('privateKey')}</h2>
+							<p class="key-hint">{scopedT('keepSecret')}</p>
+							{#if privateKeyVisible}
 								<ImageMatrixRenderer
-									matrix={intToImageMatrix(entry.publicKey)}
-									caption={entry.name}
+									matrix={intToImageMatrix(clientMicrobitService.privateKey)}
+									caption={scopedT('privateKey')}
 								/>
-								<span class="learned-name">{entry.name}</span>
-								<span class="device-id">{scopedT('deviceIdValue', { id: entry.deviceId })}</span>
-							</div>
-							<button class="transparent" onclick={() => handleRemovePublicKey(entry.name)}>
-								{scopedT('removePublicKey')}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-
-			<article class="add-pk">
-				<h3>{scopedT('addPublicKey')}</h3>
-				<div class="input-field">
-					<label for="pk-name">{scopedT('otherDeviceName')}</label>
-					<div class="input-container">
-						<input
-							id="pk-name"
-							type="text"
-							bind:value={newPkName}
-							placeholder={scopedT('otherDeviceNamePlaceholder')}
-						/>
-					</div>
-				</div>
-				<div class="input-field">
-					<label for="pk-id">{scopedT('deviceId')}</label>
-					<div class="input-container">
-						<input
-							id="pk-id"
-							type="number"
-							min="1"
-							step="1"
-							bind:value={newPkId}
-							placeholder={scopedT('deviceIdPlaceholder')}
-						/>
-					</div>
-				</div>
-				<InteractiveBitString bind:image={newPkImage} onHover={() => {}} />
-				<button class="large" onclick={handleAddPublicKey}>{scopedT('add')}</button>
-				{#if addError}
-					<span class="error">{addError}</span>
-				{/if}
-			</article>
-		</section>
-
-		{#if clientMicrobitService.ciphertextQueue.length > 0}
-			<section class="incoming">
-				<h2>{scopedT('incomingMessages')}</h2>
-				<ul class="ciphertext-queue">
-					{#each clientMicrobitService.ciphertextQueue as entry (entry.id)}
-						<li class="ciphertext-entry">
-							<div class="ciphertext-parts">
-								<div class="ciphertext-part">
-									<ImageMatrixRenderer
-										matrix={intToImageMatrix(entry.ciphertext.c1)}
-										caption="c1"
-									/>
-									<span class="key-hint">c1</span>
-								</div>
-								<div class="ciphertext-part">
-									<ImageMatrixRenderer
-										matrix={intToImageMatrix(entry.ciphertext.c2)}
-										caption="c2"
-									/>
-									<span class="key-hint">c2</span>
-								</div>
-							</div>
-
-							{#if entry.decryptedImage}
-								<div class="decrypted-result">
-									<h3>{scopedT('decryptedResult')}</h3>
-									<ImageMatrixRenderer
-										matrix={entry.decryptedImage}
-										caption={scopedT('decryptedResult')}
-									/>
-								</div>
+								<p class="bits">
+									{scopedT('bitString')}: {formatBits(intToImageMatrix(clientMicrobitService.privateKey))}
+								</p>
 							{:else}
-								<button class="large" onclick={() => clientMicrobitService.decryptEntry(entry.id)}>
-									{scopedT('decryptWithSecretKey')}
-								</button>
+								<ImageMatrixRenderer
+									matrix={intToImageMatrix(0)}
+									caption={scopedT('privateKey')}
+								/>
+								<p class="bits">
+									{scopedT('bitString')}: {formatBits(intToImageMatrix(0))}
+								</p>
+								<!-- <div class="key-hidden" role="img" aria-label={scopedT('privateKeyHidden')}>
+									<p>{scopedT('privateKeyHidden')}</p>
+								</div> -->
 							{/if}
-
-							{#if entry.decryptError}
-								<span class="error">{entry.decryptError}</span>
-							{/if}
-
-							<button
-								class="transparent"
-								onclick={() => clientMicrobitService.dismissEntry(entry.id)}
-							>
-								{scopedT('dismiss')}
+							<button class="transparent" onclick={() => (privateKeyVisible = !privateKeyVisible)}>
+								{privateKeyVisible ? scopedT('hidePrivateKey') : scopedT('showPrivateKey')}
 							</button>
-						</li>
-					{/each}
-				</ul>
-			</section>
-		{/if}
+						</article>
+						<article class="key-card public">
+							<h2>{scopedT('publicKey')}</h2>
+							<p class="key-hint">{scopedT('shareFreely')}</p>
+							<ImageMatrixRenderer
+								matrix={intToImageMatrix(clientMicrobitService.publicKey)}
+								caption={scopedT('publicKey')}
+							/>
+							<p class="bits">
+								{scopedT('bitString')}: {formatBits(intToImageMatrix(clientMicrobitService.publicKey))}
+							</p>
+						</article>
+					</div>
+				{/if}
+		
+				<section class="learned">
+					<h2>{scopedT('learnedKeys')}</h2>
+					<p class="key-hint">{scopedT('learnedKeysHint')}</p>
+		
+					{#if clientMicrobitService.learnedPublicKeys.length === 0}
+						<p class="key-hint">{scopedT('noLearnedKeys')}</p>
+					{:else}
+						<ul class="learned-list">
+							{#each clientMicrobitService.learnedPublicKeys as entry (entry.name)}
+								<li>
+									<div class="learned-item">
+										<ImageMatrixRenderer
+											matrix={intToImageMatrix(entry.publicKey)}
+											caption={entry.name}
+										/>
+										<span class="learned-name">{entry.name}</span>
+										<span class="device-id">{scopedT('deviceIdValue', { id: entry.deviceId })}</span>
+									</div>
+									<button class="transparent" onclick={() => handleRemovePublicKey(entry.name)}>
+										{scopedT('removePublicKey')}
+									</button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+		
+					<article class="add-pk">
+						<h3>{scopedT('addPublicKey')}</h3>
+						<div class="input-field">
+							<label for="pk-name">{scopedT('otherDeviceName')}</label>
+							<div class="input-container">
+								<input
+									id="pk-name"
+									type="text"
+									bind:value={newPkName}
+									placeholder={scopedT('otherDeviceNamePlaceholder')}
+								/>
+							</div>
+						</div>
+						<div class="input-field">
+							<label for="pk-id">{scopedT('deviceId')}</label>
+							<div class="input-container">
+								<input
+									id="pk-id"
+									type="number"
+									min="1"
+									step="1"
+									bind:value={newPkId}
+									placeholder={scopedT('deviceIdPlaceholder')}
+								/>
+							</div>
+						</div>
+						<InteractiveBitString bind:image={newPkImage} onHover={() => {}} />
+						<button class="large" onclick={handleAddPublicKey}>{scopedT('add')}</button>
+						
+						{#if addError}
+							<span class="error">{addError}</span>
+						{/if}
+					</article>
+				</section>
+			</div>
+		
+			<div class="column-right">
+				<section class="incoming">
+					<h2>{scopedT('incomingMessages')}</h2>
+					{#if clientMicrobitService.ciphertextQueue.length > 0}
+						<ul class="ciphertext-queue">
+							{#each clientMicrobitService.ciphertextQueue as entry (entry.id)}
+								<li class="ciphertext-entry">
+									<div class="ciphertext-parts">
+										<div class="ciphertext-part">
+											<ImageMatrixRenderer
+												matrix={intToImageMatrix(entry.ciphertext.c1)}
+												caption="c1"
+											/>
+											<span class="key-hint">c1</span>
+										</div>
+										<div class="ciphertext-part">
+											<ImageMatrixRenderer
+												matrix={intToImageMatrix(entry.ciphertext.c2)}
+												caption="c2"
+											/>
+											<span class="key-hint">c2</span>
+										</div>
+									</div>
+		
+									{#if entry.decryptedImage}
+										<div class="decrypted-result">
+											<h3>{scopedT('decryptedResult')}</h3>
+											<ImageMatrixRenderer
+												matrix={entry.decryptedImage}
+												caption={scopedT('decryptedResult')}
+											/>
+										</div>
+									{:else}
+										<button class="large" onclick={() => clientMicrobitService.decryptEntry(entry.id)}>
+											{scopedT('decryptWithSecretKey')}
+										</button>
+									{/if}
+		
+									{#if entry.decryptError}
+										<span class="error">{entry.decryptError}</span>
+									{/if}
+		
+									<button
+										class="transparent"
+										onclick={() => clientMicrobitService.dismissEntry(entry.id)}
+									>
+										{scopedT('dismiss')}
+									</button>
+								</li>
+							{/each}
+						</ul>
+						
+					{/if}
+				</section>
+			</div>
+		</div>
 
 		{#if clientMicrobitService.connected && clientMicrobitService.identified}
 			<button class="large transparent" onclick={handleDisconnect}>{scopedT('disconnect')}</button>
@@ -276,7 +296,7 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 1.25rem;
-		max-width: 720px;
+		max-width: 1320px;
 		margin: 0 auto;
 	}
 
@@ -294,7 +314,21 @@
 		width: 100%;
 		text-align: center;
 	}
+	.columns {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1.5rem;
+		width: 100%;
+		align-items: start;
+	}
 
+	.column-left,
+	.column-right {
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		min-width: 0; /* lets long device names / bit strings wrap instead of overflowing the grid track */
+	}
 	.status {
 		font-family: var(--heading);
 		font-size: 1.25rem;
@@ -309,15 +343,15 @@
 		margin: 0;
 	}
 
-	.keys {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-		text-align: left;
-		width: 100%;
+	.key-card {
+		border: 1px solid var(--stroke);
+		border-radius: 0.5rem;
+		padding: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
 	}
 
-	.key-card,
 	.add-pk {
 		border: 1px solid var(--stroke);
 		border-radius: 0.5rem;
@@ -326,6 +360,15 @@
 		flex-direction: column;
 		gap: 0.5rem;
 	}
+
+	.keys {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+		text-align: left;
+		width: 100%;
+	}
+
 
 	.key-card h2,
 	.learned h2,
@@ -352,28 +395,13 @@
 	.bits {
 		margin: 0;
 		font-family: var(--mono);
-		font-size: 0.75rem;
+		font-size: 0.8rem;
 		color: var(--muted-grey);
 		word-break: break-all;
 	}
 
-	.key-hidden {
-		aspect-ratio: 1;
-		width: 100%;
-		background-color: #111;
-		border-radius: 0.5rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		text-align: center;
-		padding: 1rem;
-	}
 
-	.key-hidden p {
-		margin: 0;
-		color: var(--muted-grey);
-		font-family: var(--heading);
-	}
+	
 
 	.learned {
 		text-align: left;
@@ -430,6 +458,12 @@
 		width: 100%;
 		border: none;
 		border-top: 1px solid var(--stroke);
+	}
+
+	@media (max-width: 860px) {
+		.columns {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	@media (max-width: 560px) {

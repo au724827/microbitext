@@ -231,12 +231,12 @@
 		"decrypt": "Dekryptér",
 		"selectRecipient": "Vælg hvem du vil kryptere til",
 		"needKeys": "Generer dit nøglepar og tilføj en offentlig nøgle, før du kan kryptere eller dekryptere.",
-		"incomingMessages": "Indgående chiffertekster",
+		"incomingMessages": "Indgående ciphertekst",
 		"decryptedResult": "Dekrypteret billede",
 		"decryptWithSecretKey": "Dekryptér med min private nøgle",
 		"dismiss": "Fjern",
 		"noPrivateKeyYet": "Generer et nøglepar, før du dekrypterer.",
-		"decryptFailed": "Chifferteksten kunne ikke dekrypteres.",
+		"decryptFailed": "Cipherteksten kunne ikke dekrypteres.",
 		"asymmetricRequired": "Asymmetrisk kryptering er ikke slået til. Slå den til under Features, eller spørg din lærer om koden."
 	},
 	"teacher": {
