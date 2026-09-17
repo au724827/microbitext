@@ -4,18 +4,22 @@
 	import MicrobitPlugGraphic from './MicrobitPlugGraphic.svelte';
 	import { DeviceError } from '@microbit/microbit-connection';
 	import { alert } from '../../helpers/popup';
+	import {type FlashSource, type EncryptionMode } from '../../helpers/micropython_compiler';
 
 	const scopedT = scope('flasher');
 
+	
 	interface Props {
-		source: 'dummy' | 'master';
+		source: FlashSource;
 		skipRemoveStep?: boolean;
 		radioChannel: number;
+		encryptionMode: EncryptionMode;
 		isSecond?: boolean;
 		onFlashComplete?: () => void;
 	}
 
-	const { source, radioChannel, onFlashComplete, skipRemoveStep, isSecond }: Props = $props();
+	const { source, radioChannel, encryptionMode, onFlashComplete, skipRemoveStep, isSecond }: Props =
+		$props();
 
 	type Steps = 'plug-in' | 'flashing' | 'remove' | 'done' | 'error';
 	let error = $state<string | undefined>(undefined);
@@ -32,7 +36,7 @@
 			await flashMicrobitWithConfig(source, radioChannel, (stage, progress) => {
 				step = 'flashing';
 				flashProgress = progress;
-			});
+			}, encryptionMode);
 
 			if (skipRemoveStep) {
 				step = 'done';

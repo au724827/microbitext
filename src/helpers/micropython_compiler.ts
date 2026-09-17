@@ -1,39 +1,52 @@
 import { fetchMicroPython } from './micropython';
 import { MicropythonFsHex } from '@microbit/microbit-fs';
 
-const dummyRoleSource = () => import('../micropython/dummy.py?raw');
+export type FlashSource = 'dummy' | 'master';
+export type EncryptionMode = 'symmetric' | 'asymmetric';
+
+const dummySymmetricRoleSource = () => import('../micropython/dummy_ori_opt.py?raw');
+const dummyAsymmetricRoleSource = () => import('../micropython/dummy.py?raw');
 const masterRoleSource = () => import('../micropython/communicationMB.py?raw');
 
 const commonFsSize = 20 * 1024;
 
 const compilationCache: Record<string, Promise<MicropythonFsHex>> = {};
-export async function compileMicropythonWithConfig(
-	source: 'dummy' | 'master',
-	radioChannel: number
-) {
-	const cacheKey = `${source}-${radioChannel}`;
-	if (!compilationCache[cacheKey]) {
-		const sourceCode = await getSource(source);
-		const configuredSource = replaceRadioChannel(sourceCode, radioChannel);
-		compilationCache[cacheKey] = compileMicropython(configuredSource);
-	}
 
-	return compilationCache[cacheKey];
+export async function compileMicropythonWithConfig(
+    source: FlashSource,
+    radioChannel: number,
+    encryptionMode: EncryptionMode
+) {
+    const cacheKey =
+        source === 'dummy' ? `dummy-${encryptionMode}-${radioChannel}` : `master-${radioChannel}`;
+
+    if (!compilationCache[cacheKey]) {
+        const sourceCode = await getSource(source, encryptionMode);
+        const configuredSource = replaceRadioChannel(sourceCode, radioChannel);
+        compilationCache[cacheKey] = compileMicropython(configuredSource);
+    }
+
+    return compilationCache[cacheKey];
 }
 
 async function compileMicropython(sourceCode: string) {
-	const micropythonBase = await fetchMicroPython();
-	const fs = new MicropythonFsHex(micropythonBase, { maxFsSize: commonFsSize });
-	fs.write('main.py', sourceCode);
+    const micropythonBase = await fetchMicroPython();
+    const fs = new MicropythonFsHex(micropythonBase, { maxFsSize: commonFsSize });
+    fs.write('main.py', sourceCode);
 
-	return fs;
+    return fs;
 }
 
-async function getSource(source: 'dummy' | 'master') {
-	const sourceModule = source === 'dummy' ? dummyRoleSource : masterRoleSource;
-	return sourceModule().then((module) => module.default);
+async function getSource(source: FlashSource, encryptionMode: EncryptionMode) {
+    if (source === 'master') {
+        return masterRoleSource().then((module) => module.default);
+    }
+
+    const sourceModule =
+        encryptionMode === 'symmetric' ? dummySymmetricRoleSource : dummyAsymmetricRoleSource;
+    return sourceModule().then((module) => module.default);
 }
 
 function replaceRadioChannel(source: string, radioChannel: number) {
-	return source.replace(/radioChannel = \d+/, `radioChannel = ${radioChannel}`);
+    return source.replace(/radioChannel = \d+/, `radioChannel = ${radioChannel}`);
 }

@@ -289,7 +289,10 @@
 			"title": "Browseren understøttes ikke",
 			"description": "Din browser understøtter ikke WebUSB. Prøv at bruge en anden browser, for eksempel Google Chrome eller Microsoft Edge.",
 			"backToBitchat": "Tilbage til Bit:Chat"
-		}
+		},
+		"encryptionMode": "Krypteringsmode",
+		"encryptionModeSymmetric": "Symmetrisk",
+		"encryptionModeAsymmetric": "Asymmetrisk"
 	},
 	"unsupportedBrowser": {
 		"title": "Browseren understøttes ikke",

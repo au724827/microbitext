@@ -1,7 +1,7 @@
 import { createUSBConnection } from '@microbit/microbit-connection/usb';
 import { microbitBoardId, type MicropythonFsHex } from '@microbit/microbit-fs';
 import { type BoardVersion, type ProgressCallback } from '@microbit/microbit-connection';
-import { compileMicropythonWithConfig } from './micropython_compiler';
+import { compileMicropythonWithConfig, type FlashSource, type EncryptionMode } from './micropython_compiler';
 import { confirm } from './popup';
 import { t } from '@i18n';
 
@@ -33,10 +33,11 @@ async function flashMicrobit(fs: MicropythonFsHex, progress: ProgressCallback): 
 }
 
 export async function flashMicrobitWithConfig(
-	source: 'dummy' | 'master',
-	radioChannel: number,
-	progress: ProgressCallback
+    source: FlashSource,
+    radioChannel: number,
+    progress: ProgressCallback,
+    encryptionMode: EncryptionMode
 ): Promise<void> {
-	const fs = await compileMicropythonWithConfig(source, radioChannel);
-	await flashMicrobit(fs, progress);
+    const fs = await compileMicropythonWithConfig(source, radioChannel, encryptionMode);
+    await flashMicrobit(fs, progress);
 }

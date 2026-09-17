@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { scope } from '@i18n';
 	import FlashMicrobit from '../Components/FlashMicrobit.svelte';
+	import { type EncryptionMode } from '../../helpers/micropython_compiler';
 
 	const scopedT = scope('flasher');
 
 	let step: 'intro' | 'flashMaster' | 'flashDummy' | 'done' | 'unsupportedBrowser' = $state('intro');
 	let radioChannel = $state(1);
+	let encryptionMode: EncryptionMode = $state('symmetric');
 	let flashing = $state(false);
 	let hasFlashedFirstDummy = $state(false);
 
@@ -31,15 +33,26 @@
 
 		<div class="config">
 			<div class="input-field">
-				<label for="radiochannel">{scopedT('groupNumber')}</label>
-				<div class="input-container">
-					<input
-						type="number"
-						name="radiochannel"
-						id="radiochannel"
-						bind:value={radioChannel}
-						placeholder={scopedT('groupNumber')}
-					/>
+				<span id="encryption-mode-label">{scopedT('encryptionMode')}</span>
+				<div class="mode-toggle" role="radiogroup" aria-labelledby="encryption-mode-label">
+					<button
+						type="button"
+						class="mode-option"
+						class:selected={encryptionMode === 'symmetric'}
+						aria-pressed={encryptionMode === 'symmetric'}
+						onclick={() => (encryptionMode = 'symmetric')}
+					>
+						{scopedT('encryptionModeSymmetric')}
+					</button>
+					<button
+						type="button"
+						class="mode-option"
+						class:selected={encryptionMode === 'asymmetric'}
+						aria-pressed={encryptionMode === 'asymmetric'}
+						onclick={() => (encryptionMode = 'asymmetric')}
+					>
+						{scopedT('encryptionModeAsymmetric')}
+					</button>
 				</div>
 			</div>
 
@@ -51,12 +64,10 @@
 		<div class="card flash">
 			<FlashMicrobit
 				{radioChannel}
+				{encryptionMode}
 				source="dummy"
 				isSecond={hasFlashedFirstDummy}
-				onFlashComplete={() => {
-					step = 'flashDummy';
-					hasFlashedFirstDummy = true;
-				}}
+				onFlashComplete={() => { step = 'flashDummy'; hasFlashedFirstDummy = true; }}
 			/>
 		</div>
 		<div class="card goto-master">
@@ -73,6 +84,7 @@
 	{:else if step === 'flashMaster'}
 		<FlashMicrobit
 			{radioChannel}
+			{encryptionMode}
 			source="master"
 			onFlashComplete={() => (step = 'done')}
 			skipRemoveStep
@@ -148,5 +160,23 @@
 		display: flex;
 		gap: 1rem;
 		align-items: flex-end;
+	}
+
+	.mode-toggle {
+		display: flex;
+		border: 1px solid var(--stroke);
+	}
+
+	.mode-option {
+		flex: 1;
+		padding: 0.5rem 1rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+	}
+
+	.mode-option.selected {
+		background-color: var(--accent);
+		color: var(--bg);
 	}
 </style>
