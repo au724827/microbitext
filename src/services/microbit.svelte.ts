@@ -218,6 +218,20 @@ class MicrobitService {
 		}
 
 		const [, sender, receiver, packedC1, packedC2] = messageParts;
+
+		try {
+			this.logService.addLog(
+				LogType.Ciphertext,
+				sender,
+				receiver,
+				unpackImage(packedC1),
+				unpackImage(packedC2)
+			);
+		} catch (error) {
+			// An unreadable ciphertext should still be routed, it just cannot be shown in the log
+			console.warn('Could not log ciphertext:', message, error);
+		}
+
 		await this.writeToMB('sendCiphertext', sender, receiver, packedC1, packedC2);
 	}
 

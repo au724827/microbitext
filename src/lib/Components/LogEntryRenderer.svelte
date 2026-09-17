@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { COMMON_IMAGES } from '../../helpers/images';
+	import { COMMON_IMAGES, type ImageMatrix } from '../../helpers/images';
 	import { Features, features } from '../../services/features.svelte';
 	import { microbitService } from '../../services/microbit.svelte';
 	import { LogType, type FriendLogs, type LogEntry } from '../../services/friendly_log.svelte';
@@ -22,6 +22,10 @@
 		const device = microbitService.knownMicrobits.find((mb) => mb.name === name);
 		return device?.image ?? COMMON_IMAGES.QUESTION_MARK;
 	}
+
+	function matrixToString(matrix: ImageMatrix) {
+		return matrix.map((row) => row.join('')).join(':');
+	}
 </script>
 
 <code>
@@ -29,7 +33,7 @@
 		{entry.message[0]} joined
 	{:else if entry.type === LogType.Message}
 		{@const [senderName, recipientName, message] = entry.message as FriendLogs[LogType.Message]}
-		{@const messageAsString = message.map((row) => row.join('')).join(':')}
+		{@const messageAsString = matrixToString(message)}
 
 		<label
 			role={showTranslator ? 'button' : 'presentation'}
@@ -52,6 +56,32 @@
 			<CodeMarquee />
 			<ImageMatrixRenderer matrix={getDeviceImage(recipientName)} class="recipient" />
 			<ImageMatrixRenderer matrix={message} class="message" />
+		</div>
+	{:else if entry.type === LogType.Ciphertext}
+		{@const [senderName, recipientName, c1, c2] = entry.message as FriendLogs[LogType.Ciphertext]}
+
+		<label
+			role={showTranslator ? 'button' : 'presentation'}
+			class="no-style image-string"
+			for={`translator-${entryId}`}
+		>
+			[{senderName}] ---&#8203;&gt; [{recipientName}] ---
+			{matrixToString(c1)} | {matrixToString(c2)}
+			<input
+				class="translator-toggle"
+				type="checkbox"
+				disabled={!showTranslator}
+				name="translator-toggle"
+				id="translator-{entryId}"
+			/>
+		</label>
+
+		<div class="translated ciphertext" id="translator-{entryId}">
+			<ImageMatrixRenderer matrix={getDeviceImage(senderName)} class="sender" />
+			<CodeMarquee />
+			<ImageMatrixRenderer matrix={getDeviceImage(recipientName)} class="recipient" />
+			<ImageMatrixRenderer matrix={c1} class="message" caption="c1" />
+			<ImageMatrixRenderer matrix={c2} class="message-2" caption="c2" />
 		</div>
 	{/if}
 </code>
@@ -132,6 +162,15 @@
 			&.message {
 				left: calc(37ch + 2px);
 			}
+
+			&.message-2 {
+				left: calc(50ch + 2px);
+			}
 		}
+	}
+
+	/* A ciphertext carries two images (c1 and c2), so it needs a wider track */
+	.translated.ciphertext {
+		width: calc(70ch + 4px);
 	}
 </style>

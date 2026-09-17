@@ -2,7 +2,8 @@ import type { ImageMatrix } from '../helpers/images';
 
 export enum LogType {
 	Device,
-	Message
+	Message,
+	Ciphertext
 }
 
 export interface FriendLogs {
@@ -12,6 +13,12 @@ export interface FriendLogs {
 		recipientName: string,
 		message: ImageMatrix,
 		encrypted: boolean
+	];
+	[LogType.Ciphertext]: [
+		senderName: string,
+		recipientName: string,
+		c1: ImageMatrix,
+		c2: ImageMatrix
 	];
 }
 
